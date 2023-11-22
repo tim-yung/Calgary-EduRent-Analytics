@@ -145,6 +145,23 @@ class School_db:
         self.cur.execute("""SELECT polygon_number, lat_coordinate, long_coordinate FROM walk_zones WHERE school_id = ? ORDER BY walk_zone_id""", (school_id,))
         rows = self.cur.fetchall()
         return rows
+
+    def read_all_walk_zones(self):
+        self.cur.execute("""SELECT school_id, polygon_number, lat_coordinate, long_coordinate FROM walk_zones ORDER BY school_id, walk_zone_id""")
+        rows = self.cur.fetchall()
+
+        # Organize rows by school_id and polygon_number
+        all_polygons = {}
+        for row in rows:
+            school_id, polygon_number, lat, long = row
+            if school_id not in all_polygons:
+                all_polygons[school_id] = {}
+            if polygon_number not in all_polygons[school_id]:
+                all_polygons[school_id][polygon_number] = []
+
+            all_polygons[school_id][polygon_number].append((lat, long))
+
+        return all_polygons
     
     def get_all_school_ids(self):
         self.cur.execute("""SELECT school_id FROM schools""")
@@ -162,6 +179,7 @@ class Listing_db:
         #self.cur.execute("""DROP TABLE IF EXISTS rental_listings""")
         #self.cur.execute("""DROP TABLE IF EXISTS utilities_included""")
         self.cur.execute("""DROP TABLE IF EXISTS schools_within_catchment""")
+        self.cur.execute("""DROP TABLE IF EXISTS schools_within_walk_zone""")
         
         self.cur.execute("""
         CREATE TABLE IF NOT EXISTS rental_listings(
@@ -230,6 +248,17 @@ class Listing_db:
             FOREIGN KEY(school_id) REFERENCES schools(school_id)
         )
         """)
+        
+        self.cur.execute("""
+        CREATE TABLE IF NOT EXISTS schools_within_walk_zone(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            listing_id INTEGER,
+            school_id INTEGER,
+            FOREIGN KEY(listing_id) REFERENCES rental_listings(id),
+            FOREIGN KEY(school_id) REFERENCES schools(school_id)
+        )
+        """)
+        
 
     def insert_listing2(self, listing):
         listing = list(listing)
@@ -258,7 +287,7 @@ class Listing_db:
                 """, (listing[1], utility)) #listing[1] is the foreign key 
                         
             self.insert_price_history(listing_data[1], listing_data[22], current_time)
-            self.insert_schools_within_catchment(listing[1], listing[15],listing[16])
+            #self.insert_schools_within_catchment(listing[1], listing[15],listing[16])
             
             self.con.commit()
         except sqlite3.IntegrityError:
@@ -289,9 +318,8 @@ class Listing_db:
             """, utilities_data)
 
             self.insert_price_history(listing_data[1], listing_data[22], current_time)
-            self.insert_schools_within_catchment(listing[1], listing[15],listing[16])
-
-            self.con.execute('COMMIT')
+            
+            self.con.commit()
         except sqlite3.IntegrityError as e:
             self.con.execute('ROLLBACK')
             print(f"Failed at id: {listing_data[0]}")
@@ -351,6 +379,11 @@ class Listing_db:
 
         if row is None or row[0] != new_price:
             self.insert_price_history(listing_id, new_price, current_time)
+    
+    def get_all_listing_ids_coordinates(self):
+        self.cur.execute("""SELECT id,latitude,longitude FROM rental_listings WHERE is_active = True""")
+        rows = self.cur.fetchall()
+        return rows
     
     def close_connection(self):
         self.con.close()
