@@ -89,8 +89,11 @@ def load_catchment():
     perf = perf_counter() - start
     print(f'{datetime.now()}:Time spent in main loop= {perf}')
 
-#this script will be imported as a module
-'''if __name__ == '__main__':
+
+def main():
+    load_catchment()
     
+#this script will be imported as a module
+if __name__ == '__main__':    
     main()
-    '''
+    

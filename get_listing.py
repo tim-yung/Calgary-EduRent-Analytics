@@ -42,5 +42,11 @@ def get_listing():
     nest_asyncio.apply()
     df = asyncio.run(fetch_data())
     listing_db = Listing_db()
-    store_df_to_db(df, listing_db)
-    listing_db.close_connection()
+    store_df_to_db(df, listing_db)    
+    listing_db.con.close()
+
+def main():
+    get_listing()
+
+if __name__ == '__main__':
+    main()

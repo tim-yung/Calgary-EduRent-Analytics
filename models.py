@@ -67,6 +67,21 @@ class School_db:
             FOREIGN KEY(school_id) REFERENCES schools(school_id)
         )
         """)
+        
+        self.cur.execute('''
+        CREATE TABLE IF NOT EXISTS school_ranking (
+            id INTEGER PRIMARY KEY,
+            school_name TEXT,
+            rank_detail_url TEXT,
+            school_rating REAL,
+            school_rank TEXT,
+            city TEXT,
+            school_group TEXT,
+            school_type TEXT,
+            school_id INTEGER,
+            FOREIGN KEY(school_id) REFERENCES schools(school_id)
+        )
+        ''')
 
     def insert_school(self, school):
         print(f'Inserting {school.name}')
@@ -385,5 +400,3 @@ class Listing_db:
         rows = self.cur.fetchall()
         return rows
     
-    def close_connection(self):
-        self.con.close()
