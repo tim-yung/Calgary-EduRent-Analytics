@@ -6,6 +6,7 @@ from concurrent.futures import ProcessPoolExecutor
 import concurrent.futures
 from time import perf_counter
 from datetime import datetime
+from rich import print
 
 
 def process_listings_chunk(listings_chunk, all_school_ids, all_attendance_areas, all_walk_zones, chunk_index):
