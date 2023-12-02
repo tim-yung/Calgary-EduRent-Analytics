@@ -178,8 +178,8 @@ class Listing_db:
     def create_tables(self):
         #self.cur.execute("""DROP TABLE IF EXISTS rental_listings""")
         #self.cur.execute("""DROP TABLE IF EXISTS utilities_included""")
-        self.cur.execute("""DROP TABLE IF EXISTS schools_within_catchment""")
-        self.cur.execute("""DROP TABLE IF EXISTS schools_within_walk_zone""")
+        #self.cur.execute("""DROP TABLE IF EXISTS schools_within_catchment""")
+        #self.cur.execute("""DROP TABLE IF EXISTS schools_within_walk_zone""")
         
         self.cur.execute("""
         CREATE TABLE IF NOT EXISTS rental_listings(
