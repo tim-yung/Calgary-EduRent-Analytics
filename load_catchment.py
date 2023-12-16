@@ -4,9 +4,8 @@ import multiprocessing
 from concurrent.futures import ProcessPoolExecutor
 import concurrent.futures
 from time import perf_counter
-from datetime import datetime
-from rich import print
 import sqlite3
+from loguru import logger
 
 # Function to get all school IDs
 def get_all_school_ids(cur):
@@ -15,7 +14,7 @@ def get_all_school_ids(cur):
         rows = cur.fetchall()
         return rows
     except sqlite3.Error as e:
-        print(f"{datetime.now()}: An error occurred in get_all_school_ids: {e}")
+        logger.exception(f"An error occurred in get_all_school_ids: {e}")
 
 # Function to read all attendance areas
 def read_all_attendance_areas(cur):
@@ -35,7 +34,7 @@ def read_all_attendance_areas(cur):
 
         return all_polygons
     except sqlite3.Error as e:
-        print(f"{datetime.now()}: An error occurred in read_all_attendance_areas: {e}")
+        logger.exception(f"An error occurred in read_all_attendance_areas: {e}")
 
 # Function to read all walk zones
 def read_all_walk_zones(cur):
@@ -55,7 +54,7 @@ def read_all_walk_zones(cur):
 
         return all_polygons
     except sqlite3.Error as e:
-        print(f"{datetime.now()}: An error occurred in read_all_walk_zones: {e}")
+        logger.exception(f"An error occurred in read_all_walk_zones: {e}")
 
 # Function to get all active listing IDs and coordinates
 def get_all_listing_ids_coordinates(cur):
@@ -70,10 +69,10 @@ def get_all_listing_ids_coordinates(cur):
                     AND swwz.listing_id IS NULL;
                     """)
         rows = cur.fetchall()
-        print(f"{datetime.now()}: Number of new rental listings to be processed: {len(rows)}")
+        logger.debug(f"Number of new rental listings to be processed: {len(rows)}")
         return rows
     except sqlite3.Error as e:
-        print(f"{datetime.now()}: An error occurred in get_all_listing_ids_coordinates: {e}")
+        logger.exception(f"An error occurred in get_all_listing_ids_coordinates: {e}")
 
 
 def process_listings_chunk(listings_chunk, all_school_ids, all_attendance_areas, all_walk_zones, chunk_index):
@@ -84,20 +83,21 @@ def process_listings_chunk(listings_chunk, all_school_ids, all_attendance_areas,
             #check attendnace area
             attendance_areas_dict = all_attendance_areas.get(school_id[0])
             if attendance_areas_dict and polygon_module.check_user_in_polygons(attendance_areas_dict, listing_lat, listing_long):
-                #print(f'Inserting Listing ID: {int(listing_id)} and school id: {school_id[0]}')
+                #logger.debug(f'Inserting Listing ID: {int(listing_id)} and school id: {school_id[0]}')
                 insert_attendance_area_records.append((int(listing_id), school_id[0]))
                 
                 #check walk zone if within attendance area
-                #print(f'Start Checking Walk Zone')
+                #logger.debug(f'Start Checking Walk Zone')
                 walk_zones_dict = all_walk_zones.get(school_id[0])
                 if walk_zones_dict and polygon_module.check_user_in_polygons(walk_zones_dict, listing_lat, listing_long):
-                    #print(f'Inserting Listing ID: {int(listing_id)} and school id: {school_id[0]}')
+                    #logger.debug(f'Inserting Listing ID: {int(listing_id)} and school id: {school_id[0]}')
                     insert_walk_zone_records.append((int(listing_id), school_id[0]))
-                    #print(f'Finish Checking Walk Zone')
+                    #logger.debug(f'Finish Checking Walk Zone')
                 
             
-        if i % 100 == 0:  # Adjust this value based on how often you want to print progress
-            print(f'{datetime.now()}: Chunk {chunk_index}: Processed {i} / {len(listings_chunk)} listings')
+        if i % 100 == 0:  # Adjust this value based on how often you want to logger.debug progress
+            logger.debug(f'Chunk {chunk_index}: Processed {i} / {len(listings_chunk)} listings')
+            logger.complete()
     return insert_attendance_area_records, insert_walk_zone_records
 
 def insert_schools_within_catchment(cur):
@@ -125,7 +125,7 @@ def insert_schools_within_catchment(cur):
             attendance_area_records, walk_zone_records = future.result()
             insert_attendance_area_records.extend(attendance_area_records)
             insert_walk_zone_records.extend(walk_zone_records)
-            print(f'{datetime.now()}: Completed future {i + 1} / {num_chunks}')
+            logger.debug(f'Completed future {i + 1} / {num_chunks}')
 
     return insert_attendance_area_records, insert_walk_zone_records
 
@@ -133,7 +133,8 @@ def insert_schools_within_catchment(cur):
 
 def main():
     start = perf_counter()
-    print(f'{datetime.now()}: Start checking attendance areas and walk zones of each rental listing')
+    
+    logger.info(f'Start checking attendance areas and walk zones of each rental listing')
     
     # Connect to the SQLite database
     conn = sqlite3.connect('database.db')
@@ -144,21 +145,21 @@ def main():
         insert_attendance_area_records, insert_walk_zone_records = insert_schools_within_catchment(cur)
         
         #for checking and debugging
-        #print(f'attendance data looks like: {insert_attendance_area_records[:3]}')
-        #print(f'attendance data looks like: {insert_walk_zone_records[:3]}')
+        #logger.debug(f'attendance data looks like: {insert_attendance_area_records[:3]}')
+        #logger.debug(f'attendance data looks like: {insert_walk_zone_records[:3]}')
         
         #inserting into database
-        print(f'{datetime.now()}: Inserting schools_within_catchment to database.')
+        logger.debug(f'Inserting schools_within_catchment to database.')
         cur.executemany("""INSERT INTO schools_within_catchment (listing_id, school_id) VALUES (?, ?)""", insert_attendance_area_records)
         
-        print(f'{datetime.now()}: Inserting schools_within_walk_zone to database.')
+        logger.debug(f'Inserting schools_within_walk_zone to database.')
         cur.executemany("""INSERT INTO schools_within_walk_zone (listing_id, school_id) VALUES (?, ?)""", insert_walk_zone_records)
 
         conn.commit()
-        print(f'{datetime.now()}: Successfully loaded data into the database.')
+        logger.info(f'Successfully loaded data into the database.')
         
     except Exception as e:
-        print(f'{datetime.now()}: Error occurred during data load - {e}. Rolling back changes.')
+        logger.exception(f'Error occurred during data load - {e}. Rolling back changes.')
         conn.rollback()  # Rollback any changes if an error occurs
         raise
     finally:
@@ -167,11 +168,11 @@ def main():
             cur.close()
         if conn:
             conn.close()
-        print(f'{datetime.now()}: Database connection closed.')
+        logger.debug(f'Database connection closed.')
     
     perf = perf_counter() - start
     minutes, seconds = divmod(perf, 60)
-    print(f'{datetime.now()}: Time spent in loading catchment and walk zones = {int(minutes)} minutes {int(seconds)} seconds')
+    logger.debug(f'Time spent in loading catchment and walk zones = {int(minutes)} minutes {int(seconds)} seconds')
 
 
 
