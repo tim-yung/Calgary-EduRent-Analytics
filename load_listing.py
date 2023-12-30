@@ -79,7 +79,7 @@ class TransformSchema(pa.DataFrameModel):
     longitude: Series[float] = pa.Field(nullable=False) # essential for matching schools, so not null
     link: Series[str] = pa.Field(nullable=False) # essential for user to check out the listing on website, so not null
     type: Series[str] = pa.Field(nullable=False) # essential for filtering, so not null
-    price: Series[int] = pa.Field(nullable=False) # main attribute for analysis, so reject null values
+    price: Series[int] = pa.Field(nullable=False, coerce = True) # main attribute for analysis, so reject null values
     beds: Series[int] = pa.Field(nullable=True) # Optional feature
     has_den: Series[bool] = pa.Field(nullable=False) # new columns from data cleaning
     sq_feet: Series[int] = pa.Field(nullable=True) # accepts None or pd.NA 
@@ -92,7 +92,7 @@ class TransformSchema(pa.DataFrameModel):
     
     
     class Config:
-        drop_invalid_rows = False 
+        drop_invalid_rows = False
         strict = True #make sure all specified columns are in the validated dataframe
 
 ################
@@ -318,7 +318,7 @@ def transform_df(df_listings: DataFrame[ExtractSchema])-> DataFrame[TransformSch
     transform_df['is_active'] = True    
     logger.debug(f'Added "is_active" column, dtype ={transform_df["is_active"].dtype}')    
     
-    transform_df['price'] = transform_df['price'].apply(round).astype('Int64')
+    transform_df['price'] = transform_df['price'].apply(round).astype(int) #do not cast as "Int64" or it will become a blob
     logger.debug(f'Cleaned "price" column, dtype ={transform_df["price"].dtype}')    
     
     transform_df['activation_date'] = datetime.now() #do not insert this when updating existing ids.
