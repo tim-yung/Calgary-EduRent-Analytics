@@ -225,7 +225,7 @@ def clean_sq_feet(value)-> int or None:
     int or pd.NA: The cleaned square feet as an integer or pd.NA.
     """
     # If the value is None (NoneType), return it as it is
-    if value is None or np.nan:
+    if value is None or value is np.nan:
         return pd.NA
     
     # If the value is an integer, return it as it is
@@ -334,6 +334,9 @@ def load_to_db(df_listings):
     
     :param df_listings: The DataFrame containing transformed rental listings.
     """
+    
+    # Save the final DataFrame to a CSV file for debugging
+    df_listings.to_csv('listing_df_cleaned_validated.csv')
        
     # Connect to the SQLite database
     conn = sqlite3.connect('database.db')
