@@ -386,9 +386,9 @@ def load_to_db(df_listings):
         
         # Update is_active to False for all existing active records that are not in the incoming data
         inactive_ids = existing_ids - set(df_listings['id'].unique())
-        cursor.executemany("UPDATE rental_listings SET is_active = ?, last_update = ? WHERE id = ? ", 
+        cursor.executemany("UPDATE rental_listings SET is_active = ?, last_update = ? WHERE is_active = True AND id = ? ", 
                            [(False, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), id) for id in inactive_ids])
-        logger.info(f'Deactivated {len(inactive_ids)} listings not present in incoming data')
+        logger.info(f'Deactivated {cursor.rowcount} listings not present in incoming data')
         
         # Update existing records
         values_to_update = [(row.city, #1
