@@ -10,9 +10,9 @@ class School_db:
         self.create_tables()
 
     def create_tables(self):
-        #self.cur.execute("""DROP TABLE IF EXISTS schools""")
-        #self.cur.execute("""DROP TABLE IF EXISTS attendance_areas""")
-        #self.cur.execute("""DROP TABLE IF EXISTS walk_zones""")
+        self.cur.execute("""DROP TABLE IF EXISTS schools""")
+        self.cur.execute("""DROP TABLE IF EXISTS attendance_areas""")
+        self.cur.execute("""DROP TABLE IF EXISTS walk_zones""")
 
         self.cur.execute("""
         CREATE TABLE IF NOT EXISTS schools(
@@ -51,8 +51,8 @@ class School_db:
             attendance_area_id INTEGER PRIMARY KEY AUTOINCREMENT,
             school_id INTEGER,
             polygon_number INTEGER,
-            lat_coordinate REAL,
             long_coordinate REAL,
+            lat_coordinate REAL,
             FOREIGN KEY(school_id) REFERENCES schools(school_id)
         )
         """)
@@ -62,12 +62,13 @@ class School_db:
             walk_zone_id INTEGER PRIMARY KEY AUTOINCREMENT,
             school_id INTEGER,
             polygon_number INTEGER,
-            lat_coordinate REAL,
             long_coordinate REAL,
+            lat_coordinate REAL,
             FOREIGN KEY(school_id) REFERENCES schools(school_id)
         )
         """)
-        
+       
+        """
         self.cur.execute('''
         CREATE TABLE IF NOT EXISTS school_ranking (
             id INTEGER PRIMARY KEY,
@@ -81,7 +82,7 @@ class School_db:
             school_id INTEGER,
             FOREIGN KEY(school_id) REFERENCES schools(school_id)
         )
-        ''')
+        ''')"""
 
     def insert_school(self, school):
         print(f'Inserting {school.name}')
@@ -99,27 +100,27 @@ class School_db:
         attendance_areas = []
         for i, polygon in enumerate(school.attendance_area):
             for coordinate in polygon.split(','):
-                lat, long = coordinate.split()[:2]
-                attendance_areas.append((school.school_id, i, lat, long))
+                long, lat = coordinate.split()[:2]
+                attendance_areas.append((school.school_id, i, long, lat))
 
         self.insert_attendance_areas(school.school_id, attendance_areas)
 
         walk_zones = []
         for i, polygon in enumerate(school.walk_zone):
             for coordinate in polygon.split(','):
-                lat, long = coordinate.split()[:2]
-                walk_zones.append((school.school_id, i, lat, long))
+                long, lat = coordinate.split()[:2]
+                walk_zones.append((school.school_id, i, long, lat))
 
         self.insert_walk_zones(school.school_id, walk_zones)
 
         self.con.commit()
 
     def insert_attendance_areas(self, school_id, areas):
-        self.cur.executemany("""INSERT INTO attendance_areas(school_id, polygon_number, lat_coordinate, long_coordinate) VALUES (?, ?, ?, ?)""",
+        self.cur.executemany("""INSERT INTO attendance_areas(school_id, polygon_number, long_coordinate, lat_coordinate) VALUES (?, ?, ?, ?)""",
                             areas)
 
     def insert_walk_zones(self, school_id, zones):  
-        self.cur.executemany("""INSERT INTO walk_zones(school_id, polygon_number, lat_coordinate, long_coordinate) VALUES (?, ?, ?, ?)""",
+        self.cur.executemany("""INSERT INTO walk_zones(school_id, polygon_number, long_coordinate, lat_coordinate) VALUES (?, ?, ?, ?)""",
                             zones)
 
     def read_schools(self):

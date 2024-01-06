@@ -1,12 +1,15 @@
 import asyncio
 from dataclasses import dataclass, field, asdict
 from selectolax.parser import HTMLParser
-from rich import print
 from time import perf_counter
 from typing import Optional
 import json
 import httpx
+from httpx import HTTPStatusError, RequestError
+from backoff import on_exception, expo
 from models import School_db
+from loguru import logger
+import pandas as pd
 
 
 @dataclass
@@ -40,6 +43,37 @@ class School:
     grade_12_enrolment: Optional[int] = 0
     attendance_area: list = field(default_factory=list)
     walk_zone: list = field(default_factory=list)
+
+
+# Other imports and School dataclass definition...
+
+MAX_CONCURRENT_REQUESTS = 10  # Adjust this number based on server tolerance
+
+# Semaphore to limit concurrent requests
+semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
+
+@on_exception(expo, (HTTPStatusError, RequestError, json.JSONDecodeError), max_tries=8)
+async def make_request(client, method, url, **kwargs):
+    """
+    Makes an HTTP request and returns the response.
+
+    Uses exponential backoff to retry on failure.
+
+    Parameters:
+    - client: The HTTP client.
+    - method: The HTTP method (e.g., 'get', 'post').
+    - url: The URL to make the request to.
+    - **kwargs: Additional arguments to pass to the request method.
+    """
+    async with semaphore:  # Ensure only a limited number of requests run at once
+        if method.lower() == 'get':
+            response = await client.get(url, **kwargs)
+        elif method.lower() == 'post':
+            response = await client.post(url, **kwargs)
+        else:
+            raise ValueError("Method should be 'get' or 'post'")
+        response.raise_for_status()  # Raises exception for 4XX/5XX responses
+        return response
 
 def extract_table(html, table_selector, heading_selector, data_selector):
 
@@ -114,7 +148,7 @@ def parse_details(html, school_id, attendance_area, walk_zone):
         walk_zone = walk_zone
 
     )
-    print(f'Fetched {new_school.name}')
+    logger.debug(f'Fetched {new_school.name}')
     #sleep(1)
     return new_school
 
@@ -138,26 +172,36 @@ async def detail_page_loop(client, headers, school_ids):
 
 async def fetch_school_data(client, headers, url, school_id):
     querystring = {"id": school_id}
-    resp = await client.get(url, headers=headers, params=querystring)
+    resp = await make_request(client, 'get', url, headers=headers,params=querystring)
     html = HTMLParser(resp.text)
     attendance_area, walk_zone = await get_polygon(client,headers,school_id)
     return parse_details(html, school_id, attendance_area, walk_zone)
 
 async def get_school_ids(client, headers):
+    """
+    Fetches the school IDs from the CBE school directory page.
+    """
     url = 'https://www.cbe.ab.ca/schools/school-directory/Pages/default.aspx'
-    resp = await client.get(url, headers=headers)
-    html = HTMLParser(resp.text)
-    school_ids = []
-
-    for id in html.css('tr.cbe-sd-schoollist-item'):
-        school_ids.append(id.attributes['data-id'])
-    print(f'Total number of schools: {len(school_ids)}')
-    return school_ids
+    try:
+        response = await make_request(client, 'get', url, headers=headers)
+        html = HTMLParser(response.text)
+        school_ids = [id.attributes['data-id'] for id in html.css('tr.cbe-sd-schoollist-item')]
+        logger.debug(f'Total number of schools: {len(school_ids)}')
+        return school_ids
+    except HTTPStatusError as e:
+        logger.error(f'HTTP error occurred: {e.response.status_code}')
+    except RequestError as e:
+        logger.error(f'Request error occurred: {e}')
+    except json.JSONDecodeError as e:
+        logger.error(f'JSON decode error: {e}')
+    except Exception as e:
+        logger.error(f'An unexpected error occurred: {e}')
+    return []
 
 async def get_polygon(client, headers,school_id):
     querystring = {"id": school_id}
     url = 'https://www.cbe.ab.ca/schools/find-a-school/_layouts/15/SchoolProfileManager/SchoolProfileManager.asmx/GetSchoolOverlays'
-    resp = await client.post(url, headers=headers, json=querystring)
+    resp = await make_request(client, 'post', url, headers=headers, json=querystring)
     data = json.loads(resp.text)
     
     # Initialize variables
@@ -170,8 +214,8 @@ async def get_polygon(client, headers,school_id):
             attendance_area = geo_data['Polygons']
         elif geo_data['Type'] == 5:
             walk_zone = geo_data['Polygons']
-    #print(f'attendance = {len(attendance_area)}')
-    #print(f'walk zone = {walk_zone}')
+    #logger.debug(f'attendance = {len(attendance_area)}')
+    #logger.debug(f'walk zone = {walk_zone}')
     return attendance_area, walk_zone
 
 def fetch_db_school_data(db):
@@ -203,7 +247,7 @@ def fetch_db_school_data(db):
                         grade_8_enrolment=data[22], grade_9_enrolment=data[23], grade_10_enrolment=data[24],
                         grade_11_enrolment=data[25], grade_12_enrolment=data[26])
         schools.append(school)
-    print(schools)
+    logger.debug(schools)
     # Return the list of School objects
     return schools
 
@@ -242,13 +286,16 @@ async def main():
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"}       
         school_ids = await get_school_ids(client, headers)
         school_list = await detail_page_loop(client, headers, school_ids)
+        
+        #pd.DataFrame(school_list).to_csv('school_list.csv')
                
         db = School_db()
         for school in school_list:
             db.insert_school(school)
+        logger.debug('Finished updating database.')
         
     perf = perf_counter() - start
-    print(f'Time spent = {perf}')
+    logger.debug(f'Time spent = {perf}')
 
 if __name__ == '__main__':
     asyncio.run(main())

@@ -1,4 +1,4 @@
-import load_listing, load_catchment, load_crime
+import load_listing, spatial_join_school, spatial_join_crime
 from time import perf_counter
 from datetime import datetime
 from rich import print
@@ -19,8 +19,9 @@ def main():
     print(f'{datetime.now()}: Start data update routine')
     
     load_listing.main()
-    load_crime.main()
-    load_catchment.main()
+    spatial_join_crime.main()
+    spatial_join_school.main()
+    
 
     perf = perf_counter() - start
     minutes, seconds = divmod(perf, 60)

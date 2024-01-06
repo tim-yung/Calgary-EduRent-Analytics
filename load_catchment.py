@@ -19,7 +19,7 @@ def get_all_school_ids(cur):
 # Function to read all attendance areas
 def read_all_attendance_areas(cur):
     try:
-        cur.execute("""SELECT school_id, polygon_number, lat_coordinate, long_coordinate FROM attendance_areas ORDER BY school_id, attendance_area_id""")
+        cur.execute("""SELECT school_id, polygon_number, long_coordinate, lat_coordinate FROM attendance_areas ORDER BY school_id, attendance_area_id""")
         rows = cur.fetchall()
 
         all_polygons = {}
@@ -39,7 +39,7 @@ def read_all_attendance_areas(cur):
 # Function to read all walk zones
 def read_all_walk_zones(cur):
     try:
-        cur.execute("""SELECT school_id, polygon_number, lat_coordinate, long_coordinate FROM walk_zones ORDER BY school_id, walk_zone_id""")
+        cur.execute("""SELECT school_id, polygon_number, long_coordinate, lat_coordinate FROM walk_zones ORDER BY school_id, walk_zone_id""")
         rows = cur.fetchall()
 
         all_polygons = {}
