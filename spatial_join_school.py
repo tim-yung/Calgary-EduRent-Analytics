@@ -5,14 +5,15 @@ from shapely.geometry import Polygon, MultiPolygon
 from loguru import logger
 from time import perf_counter
 
+
 def transform_to_geometry(df):
     """
-    Transform a DataFrame with individual coordinate points into a DataFrame with polygon geometries.
+    Transform a DataFrame with individual coordinate points into a GeoDataFrame with polygon geometries.
     
     This function takes a DataFrame that includes school IDs, names, polygon numbers, and pairs
     of latitude and longitude coordinates. It groups the points by school and polygon number to
     create polygons, and then creates a MultiPolygon for schools with multiple polygons.
-    The resulting DataFrame has one row per school with a geometry column containing the 
+    The resulting GeoDataFrame has one row per school with a geometry column containing the 
     corresponding MultiPolygon or Polygon.
     
     Parameters:
@@ -24,39 +25,28 @@ def transform_to_geometry(df):
         - 'lat_coordinate': Latitude part of the coordinate.
         
     Returns:
-    - pd.DataFrame: A DataFrame with the following columns:
+    - gpd.GeoDataFrame: A GeoDataFrame with the following columns:
         - 'school_id': An identifier for the school.
         - 'name': The name of the school.
         - 'geometry': A shapely.geometry.Polygon or shapely.geometry.MultiPolygon object representing the school's geometry.
     """
-    # Group by 'school_id' and 'polygon_number' to create distinct polygons
-    grouped = df.groupby(['school_id', 'polygon_number'])
     
-    # List to hold the DataFrame rows
-    rows_list = []
+    # First, create a new DataFrame for polygons
+    df_polygons = df.groupby(['school_id', 'name', 'polygon_number']).apply(
+        lambda group: Polygon(zip(group['long_coordinate'], group['lat_coordinate']))
+    ).reset_index().rename(columns={0: 'geometry'})
     
-    # Iterate over the groups and create polygons
-    for (school_id, polygon_number), group in grouped:
-               
-        # Create a polygon using the coordinates from the group
-        polygon = Polygon(zip(group['long_coordinate'], group['lat_coordinate']))
-        
-        # Add the polygon data to our list
-        rows_list.append({
-            'school_id': school_id,
-            'name': group['name'].iloc[0],  
-            'geometry': polygon
-        })
+    # Convert our DataFrame with Polygon objects into a GeoDataFrame
+    gdf_polygons = gpd.GeoDataFrame(df_polygons, geometry='geometry',crs="EPSG:4326")
     
-    # Convert the list of rows into a DataFrame
-    schools_geometry = pd.DataFrame(rows_list)
+    # Now use dissolve to merge the polygons into MultiPolygons where necessary
+    gdf = gdf_polygons.dissolve(by=['school_id', 'name'], as_index=False)
     
-    # Group by 'school_id' and 'name' and create MULTIPOLYGON where necessary
-    schools_geometry = schools_geometry.groupby(['school_id', 'name'])['geometry'].apply(
-        lambda x: MultiPolygon(x.tolist()) if len(x) > 1 else x.iloc[0]
-    ).reset_index()
-    
-    return schools_geometry
+    # Ensure the geometry column contains only MultiPolygon instances
+    #gdf['geometry'] = gdf.apply(lambda row: MultiPolygon([row.geometry]) if type(row.geometry) is Polygon else row.geometry, axis=1)
+
+    gdf.drop(columns = ['polygon_number'],inplace=True)
+    return gdf
 
 
 def load(conn, cursor, df, table_name):
