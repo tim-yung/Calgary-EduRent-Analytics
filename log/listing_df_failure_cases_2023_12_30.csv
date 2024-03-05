@@ -1,0 +1,2 @@
+,schema_context,column,check,check_number,failure_case,index
+0,Column,price,dtype('int64'),,int32,
