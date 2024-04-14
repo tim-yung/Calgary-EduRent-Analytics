@@ -1,7 +1,5 @@
 import load_listing, spatial_join_school, spatial_join_crime
 from time import perf_counter
-from datetime import datetime
-from rich import print
 from loguru import logger
 import sys
 
@@ -16,16 +14,21 @@ def main():
     logger.add("log/routine.log", level = 'DEBUG', retention="1 week", backtrace=True, diagnose=True, enqueue = True) 
     
     start = perf_counter()
-    print(f'{datetime.now()}: Start data update routine')
+    logger.info('Start data update routine')
     
+    # Update rental listings in database
     load_listing.main()
+    
+    # perform spatial join with crime data
     spatial_join_crime.main()
+    
+    # perform spatial join with walk zones and attendance areas of schools
     spatial_join_school.main()
     
 
     perf = perf_counter() - start
     minutes, seconds = divmod(perf, 60)
-    print(f'{datetime.now()}: Time spent in data update routine = {int(minutes)} minutes {int(seconds)} seconds')
+    logger.info(f'Time spent in data update routine = {int(minutes)} minutes {int(seconds)} seconds')
     
 if __name__ == '__main__':    
     main()
