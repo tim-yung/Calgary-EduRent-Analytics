@@ -1,4 +1,4 @@
-# EduRent Calgary Project
+# Calgary "EduRent" Analytics
 
 ## Project Overview
 
