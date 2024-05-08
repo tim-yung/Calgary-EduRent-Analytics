@@ -12,13 +12,13 @@ This project is designed to assist families moving to Calgary, Canada, in findin
   (https://www.cbe.ab.ca/schools/school-directory/Pages/default.aspx#)
   (https://cbe.ab.ca/registration/registration/lottery/Pages/Schools-With-A-Program-In-Lottery.aspx)
 - **Data Details:** Includes public schools' basic information, walk zones and attendance areas, and list of schools requiring lottery.
-- **Method:** Web scraping using `httpx`, `selectolax` for HTML parsing, and `asyncio` for asynchronous requests.
+- **Method:** Web scraping using `httpx`, `selectolax` for HTML parsing, and `asyncio` for asynchronous requests. Refer to this folder [here](schools%20scraper) to find relevant parts of the code.
 
 ### School Ranking Data
 
 - **Source:** Fraser Institute (https://www.compareschoolrankings.org/)
 - **Data Details:** Includes rankings and rating of schools.
-- **Method:** Web scraping of Javascript-based website using `playwright`.
+- **Method:** Web scraping of Javascript-based website using `playwright`. Refer to this folder [here](scrape_school_ranking_w_playwright) to find relevant parts of the code.
 
 ### Rental Listings
 
@@ -32,11 +32,11 @@ This project is designed to assist families moving to Calgary, Canada, in findin
   (https://data.calgary.ca/Health-and-Safety/Community-Crime-Statistics/78gh-n26t/about_data)
   (https://data.calgary.ca/Base-Maps/Community-Boundaries/ab7m-fwn6)
 - **Data Details:** Local crime statistics by community and geospatial community boundaries.
-- **Method:** Directly obtained from Open Calgary as `CSV` files.
+- **Method:** Directly obtained from Open Calgary as `CSV` files, then clean and transform. Refer to this folder [here](crime_rate) to find relevant parts of the code.
 
 ## Daily Routine
 
-The file `routine.py` is executed daily to perform data ingestion. This script automates the fetching of new rental listings, integrating them with school and crime information, and processing these data points through my pipelines to update the database accordingly.
+The file [`routine.py`](routine.py) is executed daily to perform data ingestion. This script automates the fetching of new rental listings, integrating them with school and crime information, and processing these data points through my pipelines to update the database accordingly.
 
 ## Database Entity Relationship Diagram (ERD)
 
@@ -67,6 +67,12 @@ And I will share this output to my client (i.e. my wife) for consideration:
 - [Daily Report Output](results/map.html)
 
 I mainly used it for making informed decisions about where to rent based on up-to-date data.
+
+## Interactive Tool
+
+I have developed an interactive tool that enables users to explore attendance areas, walk zones, and historical crime statistics based on their target locations. This tool is designed to provide valuable insights into how these factors interconnect. You can access the tool at the following link:
+
+- [Interactive Tool](tools/schools_catchment.html)
 
 ## Contribution
 
