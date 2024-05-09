@@ -4,6 +4,10 @@
 
 This project is designed to assist families moving to Calgary, Canada, in finding optimal rental properties based on proximity to quality schools and community safety. The application integrates data from public school zones, school rankings, and real-time rental listings, enriched with crime statistics to offer a comprehensive daily report on potential housing.
 
+## Related Medium Article
+
+For a detailed account of this project, the technical challenges I faced, and the invaluable lessons I learnt, please read my detailed Medium article [here](https://medium.com/@tim_yung/optimizing-my-rental-searches-in-canada-where-top-schools-meet-safety-94d5b9a2114b).
+
 ## Data Sources
 
 ### School Data
@@ -36,9 +40,20 @@ This project is designed to assist families moving to Calgary, Canada, in findin
 
 ## Daily Routine
 
-The file [`routine.py`](routine.py) is executed daily to perform data ingestion. This script automates the fetching of new rental listings, integrating them with school and crime information, and processing these data points through my pipelines to update the database accordingly.
+The file [`routine.py`](routine.py) is executed daily to perform data ingestion. This script automates the following:
+
+- fetching of new rental listings;
+  - [`load_listing.py`](load_listing.py)
+- integrating them with the walk zones and attendance areas of public schools; and
+  - [`spatial_join_school.py`](load_listing.py)
+- integrating them with crime information.
+  - [`spatial_join_crime.py`](spatial_join_crime.py)
+
+Logging are built into these modules using `loguru`. The log is available [here](log\routine.log).
 
 ## Database Entity Relationship Diagram (ERD)
+
+The database adopted is `SQLite`. It is implemented using the `sqlite3` module.
 
 ![ERD](diagrams/database_erd.png)
 
