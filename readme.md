@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This project is designed to assist families moving to Calgary, Canada, in finding optimal rental properties based on proximity to quality schools and community safety. The application integrates data from public school zones, school rankings, and real-time rental listings, enriched with crime statistics to offer a comprehensive daily report on potential housing.
+This project is designed to assist families relocating to Calgary, Canada, by providing a specialized tool that identifies ideal rental properties strategically located within designated walk zones or attendance areas of highly rated public schools and in neighborhoods with favorable safety ratings. Utilizing an efficient end-to-end data pipeline, the application integrates daily rental listings, detailed public school zones, school performance rankings, and local crime statistics. This comprehensive integration delivers a daily report that empowers families to make well-informed housing decisions.
 
 ## Related Medium Article
 
