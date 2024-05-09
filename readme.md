@@ -49,7 +49,7 @@ The file [`routine.py`](routine.py) is executed daily to perform data ingestion.
 - integrating them with crime information.
   - [`spatial_join_crime.py`](spatial_join_crime.py)
 
-Logging are built into these modules using `loguru`. The log is available [here](log\routine.log).
+Logging are built into these modules using `loguru`. The log is available [here](log/routine.log).
 
 ## Database Entity Relationship Diagram (ERD)
 
